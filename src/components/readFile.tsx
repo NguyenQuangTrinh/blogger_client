@@ -29,7 +29,7 @@ const WordFileUploader: React.FC = () => {
           try {
             const result = await mammoth.convertToHtml({ arrayBuffer });
             fileDataArray.push({ name: file.name, content: result.value });
-            uploadPostBlogger(result.value)
+            uploadPostBlogger(result.value, file.name)
             if (fileDataArray.length === selectedFiles.length) {
               // Set the state when all files are processed
               console.log(fileDataArray);
@@ -45,14 +45,14 @@ const WordFileUploader: React.FC = () => {
   };
 
 
-  function uploadPostBlogger(content: string) {
+  function uploadPostBlogger(content: string, title: string) {
     console.log(content);
     axios.post(`https://www.googleapis.com/blogger/v3/blogs/${id}/posts/`, {
       "kind": "blogger#post",
       "blog": {
         "id": "8070105920543249955"
       },
-      "title": "post demo",
+      "title": title,
       "content": content
     },
       {
