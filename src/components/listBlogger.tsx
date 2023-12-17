@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { RootState } from '../redux/store';
 import axios from 'axios';
 import { getAccessTokenFromCookie } from './cookies';
-import toast from 'react-hot-toast';
 
 
 export default function ListBlogger(){
@@ -16,7 +15,7 @@ export default function ListBlogger(){
 
     useEffect(() => {
         try {
-            const promis = axios.get('https://www.googleapis.com/blogger/v3/users/self/blogs', {
+            axios.get('https://www.googleapis.com/blogger/v3/users/self/blogs', {
                 headers: {
                     Authorization: `Bearer ${getAccessTokenFromCookie()}`,
                 },
@@ -26,14 +25,6 @@ export default function ListBlogger(){
                 }
             ).catch(e => console.log(e))
 
-            // toast.promise(
-            //     promis,
-            //     {
-            //       loading: 'Loading...',
-            //       success: <b>Success</b>,
-            //       error: <b>Could not save.</b>,
-            //     }
-            //   )
         } catch (error) {
             console.error('Error fetching Blogger posts:', error);
         }
@@ -42,7 +33,7 @@ export default function ListBlogger(){
         <>
         <h1 className="text-2xl font-semibold mb-4">List Blogger</h1>
         {listBlogger !== null && (
-                    listBlogger.map((i, index) => {
+                    listBlogger.map((i,  index) => {
                         return (
                             <Card key={index} uli='listPost' name={i.name} id={i.id} status={i.status} url={i.url} datapublish={i.published} />
                         )

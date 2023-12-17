@@ -15,7 +15,7 @@ export const bloggerSlice = createSlice({
   initialState,
   reducers: {
     getAllBlogger: (state, actions: PayloadAction<Bloggers[]>) => {
-      state.value = actions.payload
+      state.value = actions.payload != undefined ? actions.payload : []
     },
   
   },
