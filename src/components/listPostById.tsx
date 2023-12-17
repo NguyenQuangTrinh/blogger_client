@@ -24,7 +24,6 @@ export default function ListPostById() {
                 Authorization: `Bearer ${getAccessTokenFromCookie()}`,
             },
         }).then(res => {
-            console.log(res.data);
             dispatch(getPost(res.data))
         }).catch(e => console.log(e))
 
@@ -52,8 +51,8 @@ export default function ListPostById() {
                 </button>
             </div>
             <h1 className="text-2xl font-semibold mb-4">List Post</h1>
-            {listPost !== null && (
-                listPost.items.map((i, index) => {
+            {listPost?.items !== undefined && (
+                listPost?.items.map((i, index) => {
                     return (
                         <Card key={index} uli={`post/${id}`} name={i.post.title} id={i.post.id} status={""} url={i.post.author.url} datapublish={i.post.published} />
                     )

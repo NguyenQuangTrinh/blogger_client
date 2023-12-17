@@ -16,7 +16,7 @@ export const postSlice = createSlice({
   initialState,
   reducers: {
     getPost: (state, actions: PayloadAction<Post>) => {
-      state.value = actions.payload
+      state.value = actions.payload != undefined ? actions.payload : null
     },
   
   },
