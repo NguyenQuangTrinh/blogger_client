@@ -28,8 +28,14 @@ const WordFileUploader: React.FC = () => {
 
           try {
             const result = await mammoth.convertToHtml({ arrayBuffer });
-            fileDataArray.push({ name: file.name, content: result.value });
-            uploadPostBlogger(result.value, file.name)
+            const txt = await mammoth.extractRawText({ arrayBuffer });
+            const plainTextContent = txt.value;
+
+            // Lấy câu đầu tiên trước khi xuống dòng
+            const firstSentence = plainTextContent.split('\n')[0];
+            console.log(firstSentence);
+            fileDataArray.push({ name: firstSentence, content: result.value });
+            uploadPostBlogger(result.value, firstSentence)
             if (fileDataArray.length === selectedFiles.length) {
               // Set the state when all files are processed
               console.log(fileDataArray);
