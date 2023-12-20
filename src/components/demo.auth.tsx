@@ -1,205 +1,75 @@
-import type { LoaderFunctionArgs } from "react-router-dom";
-import {
-  Form,
-  Link,
-  Outlet,
-  RouterProvider,
-  createBrowserRouter,
-  redirect,
-  useActionData,
-  useFetcher,
-  useLocation,
-  useNavigation,
-  useRouteLoaderData,
-} from "react-router-dom";
-import { fakeAuthProvider } from "./auth";
+import React, { useState, ChangeEvent } from 'react';
 
-const router = createBrowserRouter([
-  {
-    id: "root",
-    path: "/",
-    loader() {
-      // Our root route always provides the user, if logged in
-      return { user: fakeAuthProvider.username };
-    },
-    Component: Layout,
-    children: [
-      {
-        index: true,
-        Component: PublicPage,
-      },
-      {
-        path: "login",
-        action: loginAction,
-        loader: loginLoader,
-        Component: LoginPage,
-      },
-      {
-        path: "protected",
-        loader: protectedLoader,
-        Component: ProtectedPage,
-      },
-    ],
-  },
-  {
-    path: "/logout",
-    async action() {
-      // We signout in a "resource route" that we can hit from a fetcher.Form
-      await fakeAuthProvider.signout();
-      return redirect("/");
-    },
-  },
-]);
+const FileReaderComponent: React.FC = () => {
+  const [fileContents, setFileContents] = useState<string[]>([]);
 
-export default function Demo() {
-  return (
-    <RouterProvider router={router} fallbackElement={<p>Initial Load...</p>} />
-  );
-}
+  const handleFileRead = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
 
-function Layout() {
-  return (
-    <div>
-      <h1>Auth Example using RouterProvider</h1>
+    if (files) {
+      const promises = Array.from(files).map((file) => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
 
-      <p>
-        This example demonstrates a simple login flow with three pages: a public
-        page, a protected page, and a login page. In order to see the protected
-        page, you must first login. Pretty standard stuff.
-      </p>
+          reader.onload = (e) => {
+            const content = e.target?.result as string;
+            const formattedContent = processHTML(content); // Xử lý HTML ở đây
+            resolve(formattedContent);
+          };
 
-      <p>
-        First, visit the public page. Then, visit the protected page. You're not
-        yet logged in, so you are redirected to the login page. After you login,
-        you are redirected back to the protected page.
-      </p>
+          reader.readAsText(file);
+        });
+      });
 
-      <p>
-        Notice the URL change each time. If you click the back button at this
-        point, would you expect to go back to the login page? No! You're already
-        logged in. Try it out, and you'll see you go back to the page you
-        visited just *before* logging in, the public page.
-      </p>
+      const contents = await Promise.all(promises);
+      setFileContents(contents);
+    }
+  };
 
-      <AuthStatus />
+  const handleUpload = () => {
+    // Bạn có thể sử dụng fileContents để lưu hoặc upload
+    console.log(fileContents);
+  };
 
-      <ul>
-        <li>
-          <Link to="/">Public Page</Link>
-        </li>
-        <li>
-          <Link to="/protected">Protected Page</Link>
-        </li>
-      </ul>
+  const processHTML = (content: string): string => {
+    const lines = content.split("\n");
 
-      <Outlet />
-    </div>
-  );
-}
+    // Xử lý từng dòng trong mảng lines
+    const formattedContent = lines.map((line, index) => {
+      if (line.includes('#')) {
+        const headingLevel = line.match(/^#+/)?.[0].length;
+        const textWithoutHash = line.replace(/^#+\s*/, '');
 
-function AuthStatus() {
-  // Get our logged in user, if they exist, from the root route loader data
-  let { user } = useRouteLoaderData("root") as { user: string | null };
-  let fetcher = useFetcher();
+        // Sử dụng template literals để tạo chuỗi HTML trực tiếp
+        return `<h${headingLevel}>${textWithoutHash}</h${headingLevel}>`;
+      } else {
+        return `${line}<br />`;
+      }
+    });
 
-  if (!user) {
-    return <p>You are not logged in.</p>;
-  }
+    // Chuyển đổi mảng formattedContent thành chuỗi văn bản thô
+    return formattedContent.join('');
+  };
 
-  let isLoggingOut = fetcher.formData != null;
+  const renderFormattedContents = () => {
+    return fileContents.map((content, index) => (
+      <div key={index}>
+        <strong>File {index + 1}:</strong>
+        <div dangerouslySetInnerHTML={{ __html: content }} />
+      </div>
+    ));
+  };
 
   return (
     <div>
-      <p>Welcome {user}!</p>
-      <fetcher.Form method="post" action="/logout">
-        <button type="submit" disabled={isLoggingOut}>
-          {isLoggingOut ? "Signing out..." : "Sign out"}
-        </button>
-      </fetcher.Form>
+      <input type="file" onChange={handleFileRead} multiple />
+      <div>
+        <strong>Formatted Contents:</strong>
+        {renderFormattedContents()}
+      </div>
+      <button onClick={handleUpload}>Upload HTML</button>
     </div>
   );
-}
+};
 
-async function loginAction({ request }: LoaderFunctionArgs) {
-  let formData = await request.formData();
-  let username = formData.get("username") as string | null;
-
-  // Validate our form inputs and return validation errors via useActionData()
-  if (!username) {
-    return {
-      error: "You must provide a username to log in",
-    };
-  }
-
-  // Sign in and redirect to the proper destination if successful.
-  try {
-    await fakeAuthProvider.signin(username);
-  } catch (error) {
-    // Unused as of now but this is how you would handle invalid
-    // username/password combinations - just like validating the inputs
-    // above
-    return {
-      error: "Invalid login attempt",
-    };
-  }
-
-  let redirectTo = formData.get("redirectTo") as string | null;
-  return redirect(redirectTo || "/");
-}
-
-async function loginLoader() {
-  if (fakeAuthProvider.isAuthenticated) {
-    return redirect("/");
-  }
-  return null;
-}
-
-function LoginPage() {
-  let location = useLocation();
-  let params = new URLSearchParams(location.search);
-  let from = params.get("from") || "/";
-
-  let navigation = useNavigation();
-  let isLoggingIn = navigation.formData?.get("username") != null;
-
-  let actionData = useActionData() as { error: string } | undefined;
-
-  return (
-    <div>
-      <p>You must log in to view the page at {from}</p>
-
-      <Form method="post" replace>
-        <input type="hidden" name="redirectTo" value={from} />
-        <label>
-          Username: <input name="username" />
-        </label>{" "}
-        <button type="submit" disabled={isLoggingIn}>
-          {isLoggingIn ? "Logging in..." : "Login"}
-        </button>
-        {actionData && actionData.error ? (
-          <p style={{ color: "red" }}>{actionData.error}</p>
-        ) : null}
-      </Form>
-    </div>
-  );
-}
-
-function PublicPage() {
-  return <h3>Public</h3>;
-}
-
-function protectedLoader({ request }: LoaderFunctionArgs) {
-  // If the user is not logged in and tries to access `/protected`, we redirect
-  // them to `/login` with a `from` parameter that allows login to redirect back
-  // to this page upon successful authentication
-  if (!fakeAuthProvider.isAuthenticated) {
-    let params = new URLSearchParams();
-    params.set("from", new URL(request.url).pathname);
-    return redirect("/login?" + params.toString());
-  }
-  return null;
-}
-
-function ProtectedPage() {
-  return <h3>Protected</h3>;
-}
+export default FileReaderComponent;

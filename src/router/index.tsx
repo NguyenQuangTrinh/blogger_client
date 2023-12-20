@@ -12,6 +12,7 @@ import WordFileUploader from "../components/readFile";
 import ListPostById from "../components/listPostById";
 import { getAccessTokenFromCookie } from "../components/cookies";
 import axios from "axios";
+import FileReaderComponent from "../components/demo.auth";
 
 
 async function checkLogin() {
@@ -59,6 +60,10 @@ export const routerMain = createBrowserRouter([
         path: "addPost/:id",
         element: <WordFileUploader />
       },
+      {
+        path: "demo",
+        element: <FileReaderComponent/>
+      }
 
     ],
     errorElement: <ErrorPage />

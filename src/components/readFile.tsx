@@ -1,5 +1,4 @@
 import React, { useState, ChangeEvent } from 'react';
-import mammoth from 'mammoth';
 import axios from 'axios';
 import { useNavigate } from 'react-router';
 import { FaArrowLeft } from 'react-icons/fa';
@@ -13,42 +12,52 @@ const WordFileUploader: React.FC = () => {
   const { id } = useParams();
 
 
-  const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = event.target.files;
+  const processHTML = (content: string): string => {
+    const lines = content.split("\n");
 
-    if (selectedFiles) {
-      const fileDataArray: any[] = [];
+    // Xử lý từng dòng trong mảng lines
+    const formattedContent = lines.map((line) => {
+      if (line.includes('#')) {
+        const headingLevel = line.match(/^#+/)?.[0].length;
+        const textWithoutHash = line.replace(/^#+\s*/, '');
 
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const file = selectedFiles[i];
-        const reader = new FileReader();
-
-        reader.onload = async (e) => {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-
-          try {
-            const result = await mammoth.convertToHtml({ arrayBuffer });
-            const txt = await mammoth.extractRawText({ arrayBuffer });
-            const plainTextContent = txt.value;
-
-            // Lấy câu đầu tiên trước khi xuống dòng
-            const firstSentence = plainTextContent.split('\n')[0];
-            console.log(firstSentence);
-            fileDataArray.push({ name: firstSentence, content: result.value });
-            uploadPostBlogger(result.value, firstSentence)
-            if (fileDataArray.length === selectedFiles.length) {
-              // Set the state when all files are processed
-              console.log(fileDataArray);
-              setFiles(fileDataArray);
-            }
-          } catch (error) {
-            console.error('Error converting docx to HTML:', error);
-          }
-        };
-        reader.readAsArrayBuffer(file);
+        // Sử dụng template literals để tạo chuỗi HTML trực tiếp
+        return `<h${headingLevel}>${textWithoutHash}</h${headingLevel}>`;
+      } else {
+        return `${line}<br />`;
       }
+    });
+
+    // Chuyển đổi mảng formattedContent thành chuỗi văn bản thô
+    const txt = formattedContent.join('');
+    uploadPostBlogger(txt, lines[0]);
+    return txt;
+  };
+
+  const handleFileRead = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+
+    if (files) {
+      const promises = Array.from(files).map((file) => {
+        return new Promise<string>((resolve) => {
+          const reader = new FileReader();
+
+          reader.onload = (e) => {
+            const content = e.target?.result as string;
+            const formattedContent = processHTML(content); // Xử lý HTML ở đây
+            resolve(formattedContent);
+          };
+
+          reader.readAsText(file);
+        });
+      });
+
+      const contents = await Promise.all(promises);
+      setFiles(contents);
     }
   };
+
+
 
 
   function uploadPostBlogger(content: string, title: string) {
@@ -70,6 +79,14 @@ const WordFileUploader: React.FC = () => {
     ).then(res => console.log(res.data.item)).catch(e => console.log(e));
   }
 
+  const renderFormattedContents = () => {
+    return (
+      <div>
+        <div dangerouslySetInnerHTML={{ __html: files[page] }} />
+      </div>
+    );
+  };
+
   return (
     <>
       <h1 className="text-2xl font-semibold mb-4">Add new post</h1>
@@ -83,7 +100,7 @@ const WordFileUploader: React.FC = () => {
       </div>
       <label className="block">
         <span className="sr-only">Choose post</span>
-        <input type="file" multiple onChange={handleFileChange} className="block w-full text-sm text-slate-500
+        <input type="file" multiple onChange={handleFileRead} className="block w-full text-sm text-slate-500
       file:mr-4 file:py-2 file:px-4
       file:rounded-full file:border-0
       file:text-sm file:font-semibold
@@ -93,13 +110,14 @@ const WordFileUploader: React.FC = () => {
       </label>
       {files && (
         <div>
-          <h3 className='text-2xl font-bold'>Post {page}</h3>
-          {
+          <h3 className='text-2xl font-bold'>Post {page+1}</h3>
+          {/* {
             <div >
               <p className='my-2 text-lg font-bold'>Name: {files[page]?.name}</p>
               <div dangerouslySetInnerHTML={{ __html: files[page]?.content }} />
             </div>
-          }
+          } */}
+          {renderFormattedContents()}
           <div className='width-full mt-5 flex flex-row justify-between' >
             <button
               onClick={() => setPage(page - 1)}
