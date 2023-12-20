@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { Suspense, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
 import { RootState } from '../redux/store';
@@ -53,8 +53,7 @@ export const Post: React.FC = () => {
         </button>
       </div>
       <div className="max-w-3xl mx-auto my-8">
-        <img src={post?.author.image && ""} alt="Post Image" className="mb-4 rounded-lg w-full" />
-
+        <a href={post?.url} >Xem bài post</a>
         <h3 className="text-xl font-semibold mb-2">{post?.author.displayName}</h3>
 
         <h1 className="text-3xl font-bold mb-4">{post?.title}</h1>
